@@ -36,7 +36,7 @@ var DEFAULT_SETTINGS = {
   combineChannelNameAndURL: false,
   enableRibbonIcon: true,
   enableCommandPalette: true,
-  enableHotkey: false,
+  // enableHotkey: false,
   hotkeyModifier: "alt",
   hotkeyKey: "Y"
 };
@@ -47,17 +47,10 @@ var EnhanceYouTubeLinksPlugin = class extends import_obsidian.Plugin {
   async onload() {
     var _a;
     await this.loadSettings();
-    const statusBar = this.addStatusBarItem();
-    statusBar.createEl("span", { text: "Hi" });
     const editor = (_a = this.app.workspace.activeEditor) == null ? void 0 : _a.editor;
     if (editor) {
       if (this.settings.enableRibbonIcon) {
         this.addRibbonIcon("play", "Get YT Data", (evt) => {
-          this.processText(editor);
-        });
-      }
-      if (this.settings.enableHotkey) {
-        this.app.scope.register([this.getModifier()], this.settings.hotkeyKey, (evt) => {
           this.processText(editor);
         });
       }
@@ -68,7 +61,6 @@ var EnhanceYouTubeLinksPlugin = class extends import_obsidian.Plugin {
           editorCallback: (editor2, view) => {
             this.processText(editor2);
           }
-          //   hotkeys: test
         });
       }
     }
@@ -275,45 +267,5 @@ var EnhanceYouTubeLinksSettingTab = class extends import_obsidian.PluginSettingT
         await this.plugin.saveSettings();
       });
     }).setDesc("Requires reload for change to reflect");
-    new import_obsidian.Setting(containerEl).setName("Enable Hotkey").addToggle((cb) => {
-      cb.setValue(this.plugin.settings.enableHotkey);
-      cb.onChange(async (value) => {
-        this.plugin.settings.enableHotkey = value;
-        await this.plugin.saveSettings();
-        this.display();
-      });
-    }).addDropdown((cb) => {
-      if (!this.plugin.settings.enableHotkey) {
-        cb.setDisabled(true);
-        cb.addOption("N/A", "N/A");
-      } else {
-        cb.addOptions({ alt: "Alt", ctrl: "Ctrl", meta: "Meta", mod: "Mod", shift: "Shift" });
-        cb.setValue(this.plugin.settings.hotkeyModifier);
-        cb.onChange(async (value) => {
-          this.plugin.settings.hotkeyModifier = value;
-          await this.plugin.saveSettings();
-        });
-      }
-    }).addText((cb) => {
-      if (!this.plugin.settings.enableHotkey) {
-        cb.setDisabled(true);
-        cb.setPlaceholder("Disabled");
-      } else {
-        cb.setValue(this.plugin.settings.hotkeyKey);
-        cb.onChange(async (value) => {
-          if (value.length == 1) {
-            this.plugin.settings.hotkeyKey = value;
-            await this.plugin.saveSettings();
-          } else {
-            if (value.length > 1) {
-              cb.setValue(value.charAt(0));
-              new import_obsidian.Notice("HotKey Key can only be one character");
-            } else {
-              new import_obsidian.Notice("HotKey Key cannot be blank");
-            }
-          }
-        });
-      }
-    }).setDesc("Requires reload for change to reflect. Key can only be one character");
   }
 };
