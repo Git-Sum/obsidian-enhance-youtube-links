@@ -35,10 +35,7 @@ var DEFAULT_SETTINGS = {
   includeChannelThumbnail: true,
   combineChannelNameAndURL: false,
   enableRibbonIcon: true,
-  enableCommandPalette: true,
-  // enableHotkey: false,
-  hotkeyModifier: "alt",
-  hotkeyKey: "Y"
+  enableCommandPalette: true
 };
 var lineCount = 1;
 var indentLevel = 0;
@@ -71,28 +68,6 @@ var EnhanceYouTubeLinksPlugin = class extends import_obsidian.Plugin {
       leadingString = "- ";
     } else {
       leadingString = "";
-    }
-  }
-  getModifier() {
-    switch (this.settings.hotkeyModifier) {
-      case "alt": {
-        return "Alt";
-      }
-      case "ctrl": {
-        return "Ctrl";
-      }
-      case "meta": {
-        return "Meta";
-      }
-      case "mod": {
-        return "Mod";
-      }
-      case "shift": {
-        return "Shift";
-      }
-      default: {
-        return "Alt";
-      }
     }
   }
   async processText(editor) {
