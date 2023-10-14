@@ -33,50 +33,118 @@ var DEFAULT_SETTINGS = {
   includeChannelName: true,
   includeChannelURL: true,
   includeChannelThumbnail: true,
-  combineChannelNameAndURL: false
+  combineChannelNameAndURL: false,
+  enableRibbonIcon: true,
+  enableCommandPalette: true,
+  enableHotkey: false,
+  hotkeyModifier: "alt",
+  hotkeyKey: "Y"
 };
 var lineCount = 1;
 var indentLevel = 0;
+var leadingString = "";
 var EnhanceYouTubeLinksPlugin = class extends import_obsidian.Plugin {
   async onload() {
+    var _a;
     await this.loadSettings();
-    const urlBase = "https://www.youtube.com/oembed?url=";
-    this.addRibbonIcon("play", "Get YT Data", (evt) => {
-      var _a;
-      const editor = (_a = this.app.workspace.activeEditor) == null ? void 0 : _a.editor;
-      if (editor) {
-        const textSelected = editor.getSelection();
-        const line = editor.getCursor().line;
-        const lineSelected = editor.getLine(line);
-        indentLevel = this.getIndentLevel(lineSelected);
-        if ((textSelected == null ? void 0 : textSelected.startsWith("https://www.youtube.com")) || (textSelected == null ? void 0 : textSelected.startsWith("www.youtube.com")) || (textSelected == null ? void 0 : textSelected.startsWith("youtube.com"))) {
-          const urlFinal = urlBase + textSelected;
-          (0, import_obsidian.requestUrl)(urlFinal).then(
-            (response) => {
-              const data = response.json;
-              let urlTitle = this.buildTitle(data, textSelected);
-              let result;
-              result = lineSelected.replace(textSelected, urlTitle);
-              if (this.settings.includeExtraMetadata) {
-                result += this.buildMetadata(data);
-              }
-              editor.setLine(line, result);
-              if (this.settings.includeExtraMetadata) {
-                editor.setCursor(line + lineCount, 0);
-              } else {
-                editor.setCursor(line, lineSelected.indexOf(textSelected) + urlTitle.length);
-              }
-              this.resetVariables();
-            }
-          );
-        }
+    const statusBar = this.addStatusBarItem();
+    statusBar.createEl("span", { text: "Hi" });
+    const editor = (_a = this.app.workspace.activeEditor) == null ? void 0 : _a.editor;
+    if (editor) {
+      if (this.settings.enableRibbonIcon) {
+        this.addRibbonIcon("play", "Get YT Data", (evt) => {
+          this.processText(editor);
+        });
       }
-    });
+      if (this.settings.enableHotkey) {
+        this.app.scope.register([this.getModifier()], this.settings.hotkeyKey, (evt) => {
+          this.processText(editor);
+        });
+      }
+      if (this.settings.enableCommandPalette) {
+        this.addCommand({
+          id: "enhance-youtube-links-process-text",
+          name: "Process Text",
+          editorCallback: (editor2, view) => {
+            this.processText(editor2);
+          }
+          //   hotkeys: test
+        });
+      }
+    }
     this.addSettingTab(new EnhanceYouTubeLinksSettingTab(this.app, this));
+  }
+  getBullet(text) {
+    console.log("here");
+    if (text.match("^[	]*[-]")) {
+      leadingString = "- ";
+    } else {
+      leadingString = "";
+    }
+  }
+  getModifier() {
+    switch (this.settings.hotkeyModifier) {
+      case "alt": {
+        return "Alt";
+      }
+      case "ctrl": {
+        return "Ctrl";
+      }
+      case "meta": {
+        return "Meta";
+      }
+      case "mod": {
+        return "Mod";
+      }
+      case "shift": {
+        return "Shift";
+      }
+      default: {
+        return "Alt";
+      }
+    }
+  }
+  processText(editor) {
+    const urlBase = "https://www.youtube.com/oembed?url=";
+    const textSelected = editor.getSelection();
+    if (textSelected.length > 0) {
+      const line = editor.getCursor().line;
+      const lineSelected = editor.getLine(line);
+      indentLevel = this.getIndentLevel(lineSelected);
+      this.getBullet(lineSelected);
+      if ((textSelected == null ? void 0 : textSelected.startsWith("https://www.youtube.com")) || (textSelected == null ? void 0 : textSelected.startsWith("www.youtube.com")) || (textSelected == null ? void 0 : textSelected.startsWith("youtube.com"))) {
+        const urlFinal = urlBase + textSelected;
+        (0, import_obsidian.requestUrl)(urlFinal).then(
+          (response) => {
+            const data = response.json;
+            let urlTitle = this.buildTitle(data, textSelected);
+            let result;
+            result = lineSelected.replace(textSelected, urlTitle);
+            if (this.settings.includeExtraMetadata) {
+              result += this.buildMetadata(data);
+            }
+            editor.setLine(line, result);
+            if (this.settings.includeExtraMetadata) {
+              editor.setCursor(line + lineCount, 0);
+            } else {
+              editor.setCursor(line, lineSelected.indexOf(textSelected) + urlTitle.length);
+            }
+            this.resetVariables();
+          }
+        ).catch(() => {
+          new import_obsidian.Notice("No result");
+        });
+      } else {
+        new import_obsidian.Notice("Text selected does not match YouTube URL pattern");
+      }
+    } else {
+      new import_obsidian.Notice("No text selected");
+    }
   }
   resetVariables() {
     lineCount = 1;
     indentLevel = 0;
+    leadingString = "";
   }
   getIndent() {
     if (indentLevel <= 0) {
@@ -86,10 +154,10 @@ var EnhanceYouTubeLinksPlugin = class extends import_obsidian.Plugin {
     }
   }
   getIndentLevel(lineText) {
-    const matchString = "(	)";
+    const matchString = "^	*";
     const matches = lineText.match(matchString);
     if (matches && matches.length > 0) {
-      return matches.length;
+      return matches[0].length;
     } else {
       return 0;
     }
@@ -101,29 +169,29 @@ var EnhanceYouTubeLinksPlugin = class extends import_obsidian.Plugin {
     let result;
     result = "";
     if (this.settings.includeChannelName && this.settings.includeChannelURL) {
-      result += "\n" + this.getIndent() + "	Channel:";
+      result += "\n" + this.getIndent() + "	" + leadingString + "Channel:";
       authorName = data.author_name;
       authorURL = data.author_url;
-      result += "\n" + this.getIndent() + "		[" + authorName + "](" + authorURL + ")";
+      result += "\n" + this.getIndent() + "		" + leadingString + "[" + authorName + "](" + authorURL + ")";
       lineCount += 2;
     } else {
       if (this.settings.includeChannelName) {
-        result += "\n" + this.getIndent() + "	Channel:";
+        result += "\n" + this.getIndent() + "	" + leadingString + "Channel:";
         authorName = data.author_name;
-        result += "\n" + this.getIndent() + "		" + authorName;
+        result += "\n" + this.getIndent() + "		" + leadingString + authorName;
         lineCount += 2;
       }
       if (this.settings.includeChannelURL) {
-        result += "\n" + this.getIndent() + "	Channel URL:";
+        result += "\n" + this.getIndent() + "	" + leadingString + "Channel URL:";
         authorURL = data.author_url;
-        result += "\n" + this.getIndent() + "		" + authorURL;
+        result += "\n" + this.getIndent() + "		" + leadingString + authorURL;
         lineCount += 2;
       }
     }
     if (this.settings.includeChannelThumbnail) {
-      result += "\n" + this.getIndent() + "	Thumbnail:";
+      result += "\n" + this.getIndent() + "	" + leadingString + "Thumbnail:";
       thumbnailURL = data.thumbnail_url;
-      result += "\n" + this.getIndent() + "		![](" + thumbnailURL + ")";
+      result += "\n" + this.getIndent() + "		" + leadingString + "![](" + thumbnailURL + ")";
       lineCount += 2;
     }
     return result;
@@ -193,5 +261,50 @@ var EnhanceYouTubeLinksSettingTab = class extends import_obsidian.PluginSettingT
         });
       });
     }
+    new import_obsidian.Setting(containerEl).setName("Enable Ribbon Icon").addToggle((cb) => {
+      cb.setValue(this.plugin.settings.enableRibbonIcon);
+      cb.onChange(async (value) => {
+        this.plugin.settings.enableRibbonIcon = value;
+        await this.plugin.saveSettings();
+      });
+    }).setDesc("Requires reload for change to reflect");
+    new import_obsidian.Setting(containerEl).setName("Enable Command Palette").addToggle((cb) => {
+      cb.setValue(this.plugin.settings.enableCommandPalette);
+      cb.onChange(async (value) => {
+        this.plugin.settings.enableCommandPalette = value;
+        await this.plugin.saveSettings();
+      });
+    }).setDesc("Requires reload for change to reflect");
+    new import_obsidian.Setting(containerEl).setName("Enable Hotkey").addToggle((cb) => {
+      cb.setValue(this.plugin.settings.enableHotkey);
+      cb.onChange(async (value) => {
+        this.plugin.settings.enableHotkey = value;
+        await this.plugin.saveSettings();
+        this.display();
+      });
+    }).addDropdown((cb) => {
+      if (!this.plugin.settings.enableHotkey) {
+        cb.setDisabled(true);
+        cb.addOption("N/A", "N/A");
+      } else {
+        cb.addOptions({ alt: "Alt", ctrl: "Ctrl", meta: "Meta", mod: "Mod", shift: "Shift" });
+        cb.setValue(this.plugin.settings.hotkeyModifier);
+        cb.onChange(async (value) => {
+          this.plugin.settings.hotkeyModifier = value;
+          await this.plugin.saveSettings();
+        });
+      }
+    }).addText((cb) => {
+      if (!this.plugin.settings.enableHotkey) {
+        cb.setDisabled(true);
+        cb.setPlaceholder("Disabled");
+      } else {
+        cb.setValue(this.plugin.settings.hotkeyKey);
+        cb.onChange(async (value) => {
+          this.plugin.settings.hotkeyKey = value;
+          await this.plugin.saveSettings();
+        });
+      }
+    }).setDesc("Requires reload for change to reflect. Key can only be one character");
   }
 };
