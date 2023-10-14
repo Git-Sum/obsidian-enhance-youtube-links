@@ -301,8 +301,17 @@ var EnhanceYouTubeLinksSettingTab = class extends import_obsidian.PluginSettingT
       } else {
         cb.setValue(this.plugin.settings.hotkeyKey);
         cb.onChange(async (value) => {
-          this.plugin.settings.hotkeyKey = value;
-          await this.plugin.saveSettings();
+          if (value.length == 1) {
+            this.plugin.settings.hotkeyKey = value;
+            await this.plugin.saveSettings();
+          } else {
+            if (value.length > 1) {
+              cb.setValue(value.charAt(0));
+              new import_obsidian.Notice("HotKey Key can only be one character");
+            } else {
+              new import_obsidian.Notice("HotKey Key cannot be blank");
+            }
+          }
         });
       }
     }).setDesc("Requires reload for change to reflect. Key can only be one character");
