@@ -67,7 +67,6 @@ var EnhanceYouTubeLinksPlugin = class extends import_obsidian.Plugin {
     this.addSettingTab(new EnhanceYouTubeLinksSettingTab(this.app, this));
   }
   getBullet(text) {
-    console.log("here");
     if (text.match("^[	]*[-]")) {
       leadingString = "- ";
     } else {
@@ -96,7 +95,7 @@ var EnhanceYouTubeLinksPlugin = class extends import_obsidian.Plugin {
       }
     }
   }
-  processText(editor) {
+  async processText(editor) {
     const urlBase = "https://www.youtube.com/oembed?url=";
     const textSelected = editor.getSelection();
     if (textSelected.length > 0) {
@@ -106,31 +105,35 @@ var EnhanceYouTubeLinksPlugin = class extends import_obsidian.Plugin {
       this.getBullet(lineSelected);
       if ((textSelected == null ? void 0 : textSelected.startsWith("https://www.youtube.com")) || (textSelected == null ? void 0 : textSelected.startsWith("www.youtube.com")) || (textSelected == null ? void 0 : textSelected.startsWith("youtube.com"))) {
         const urlFinal = urlBase + textSelected;
-        (0, import_obsidian.requestUrl)(urlFinal).then(
-          (response) => {
-            const data = response.json;
-            let urlTitle = this.buildTitle(data, textSelected);
-            let result;
-            result = lineSelected.replace(textSelected, urlTitle);
-            if (this.settings.includeExtraMetadata) {
-              result += this.buildMetadata(data);
-            }
-            editor.setLine(line, result);
-            if (this.settings.includeExtraMetadata) {
-              editor.setCursor(line + lineCount, 0);
-            } else {
-              editor.setCursor(line, lineSelected.indexOf(textSelected) + urlTitle.length);
-            }
-            this.resetVariables();
+        const data = await this.getYouTubeData(urlFinal);
+        if (data) {
+          let urlTitle = this.buildTitle(data, textSelected);
+          let result;
+          result = lineSelected.replace(textSelected, urlTitle);
+          if (this.settings.includeExtraMetadata) {
+            result += this.buildMetadata(data);
           }
-        ).catch(() => {
-          new import_obsidian.Notice("No result");
-        });
+          editor.setLine(line, result);
+          if (this.settings.includeExtraMetadata) {
+            editor.setCursor(line + lineCount, 0);
+          } else {
+            editor.setCursor(line, lineSelected.indexOf(textSelected) + urlTitle.length);
+          }
+        }
       } else {
         new import_obsidian.Notice("Text selected does not match YouTube URL pattern");
       }
     } else {
       new import_obsidian.Notice("No text selected");
+    }
+  }
+  async getYouTubeData(url) {
+    try {
+      const response = await (0, import_obsidian.requestUrl)(url);
+      const data = await response.json;
+      return data;
+    } catch (error) {
+      new import_obsidian.Notice("No result");
     }
   }
   resetVariables() {
@@ -210,7 +213,7 @@ var EnhanceYouTubeLinksSettingTab = class extends import_obsidian.PluginSettingT
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    new import_obsidian.Setting(containerEl).setName("Add extra metadata").setDesc("Channel Name, Channel URL, Thumbnail").addToggle((cb) => {
+    new import_obsidian.Setting(containerEl).setName("Add extra metadata").setDesc("Channel name, channel URL, thumbnail").addToggle((cb) => {
       cb.setValue(this.plugin.settings.includeExtraMetadata);
       cb.onChange(async (value) => {
         this.plugin.settings.includeExtraMetadata = value;
@@ -219,7 +222,7 @@ var EnhanceYouTubeLinksSettingTab = class extends import_obsidian.PluginSettingT
       });
     });
     if (this.plugin.settings.includeExtraMetadata) {
-      new import_obsidian.Setting(containerEl).setName("Channel Name").addToggle((cb) => {
+      new import_obsidian.Setting(containerEl).setName("Channel name").addToggle((cb) => {
         cb.setValue(this.plugin.settings.includeChannelName);
         cb.onChange(async (value) => {
           this.plugin.settings.includeChannelName = value;
@@ -236,7 +239,7 @@ var EnhanceYouTubeLinksSettingTab = class extends import_obsidian.PluginSettingT
         });
       });
       if (this.plugin.settings.includeChannelName && this.plugin.settings.includeChannelURL) {
-        new import_obsidian.Setting(containerEl).setName("Combine Channel Name and Channel URL").addToggle((cb) => {
+        new import_obsidian.Setting(containerEl).setName("Combine channel name and channel URL").addToggle((cb) => {
           cb.setValue(this.plugin.settings.combineChannelNameAndURL);
           cb.onChange(async (value) => {
             this.plugin.settings.combineChannelNameAndURL = value;
@@ -253,14 +256,14 @@ var EnhanceYouTubeLinksSettingTab = class extends import_obsidian.PluginSettingT
         });
       });
     }
-    new import_obsidian.Setting(containerEl).setName("Enable Ribbon Icon").addToggle((cb) => {
+    new import_obsidian.Setting(containerEl).setName("Enable ribbon icon").addToggle((cb) => {
       cb.setValue(this.plugin.settings.enableRibbonIcon);
       cb.onChange(async (value) => {
         this.plugin.settings.enableRibbonIcon = value;
         await this.plugin.saveSettings();
       });
     }).setDesc("Requires reload for change to reflect");
-    new import_obsidian.Setting(containerEl).setName("Enable Command Palette").addToggle((cb) => {
+    new import_obsidian.Setting(containerEl).setName("Enable command palette").addToggle((cb) => {
       cb.setValue(this.plugin.settings.enableCommandPalette);
       cb.onChange(async (value) => {
         this.plugin.settings.enableCommandPalette = value;
