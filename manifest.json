@@ -1,7 +1,7 @@
 {
 	"id": "enhance-youtube-links",
 	"name": "Enhance YouTube Links",
-	"version": "1.0.6",
+	"version": "1.0.7",
 	"minAppVersion": "0.15.0",
 	"description": "Get metadata from a YouTube video",
 	"author": "Git-Sum",

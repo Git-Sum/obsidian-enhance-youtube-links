@@ -40,7 +40,7 @@ export default class EnhanceYouTubeLinksPlugin extends Plugin {
         const editor = this.app.workspace.activeEditor?.editor;
         if (editor) {
             if (this.settings.enableRibbonIcon) {
-                this.addRibbonIcon('youtube', 'Get YouTube Data', (evt: MouseEvent) => {
+                this.addRibbonIcon('youtube', 'Get YouTube data', (evt: MouseEvent) => {
                     this.processText(editor)
                 })
             }
