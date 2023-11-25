@@ -1,13 +1,16 @@
 {
-    "name": "enhance-youtube-links",
-    "version": "1.0.8",
-    "main": "main.js",
-    "scripts": {
-        "dev": "node esbuild.config.mjs",
+	"name": "enhance-youtube-links",
+	"version": "1.0.8",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"version": "node version-bump.mjs && git add manifest.json versions.json"
-    },
-    "devDependencies": {
+		"start": "node scripts/start.mjs",
+		"startf": "node scripts/start.mjs -f",
+		"version": "node scripts/update-version.mjs",
+		"acp": "node scripts/acp.mjs"
+	},
+	"devDependencies": {
 		"@types/node": "^16.11.6",
 		"@typescript-eslint/eslint-plugin": "5.29.0",
 		"@typescript-eslint/parser": "5.29.0",

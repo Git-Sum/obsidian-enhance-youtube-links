@@ -1,10 +1,12 @@
-import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, requestUrl } from 'obsidian';
+import { Editor, MarkdownView, Notice, Plugin, requestUrl } from 'obsidian';
+import { EnhanceYouTubeLinksSettingTab } from './settings';
 
 /*
 ToDos:
+    - add the title of the video by default ?
     - Support other youtube patterns
     - Add support for finding link if more than link is selected
-    - Seperate settings from main
+    - Separate settings from main. done
 */
 
 interface EnhanceYouTubeLinksPluginSettings {
@@ -22,7 +24,7 @@ const DEFAULT_SETTINGS: EnhanceYouTubeLinksPluginSettings = {
     includeChannelName: true,
     includeChannelURL: true,
     includeChannelThumbnail: true,
-    combineChannelNameAndURL: false,
+    combineChannelNameAndURL: false,// true?
     enableRibbonIcon: true,
     enableCommandPalette: true
 }
@@ -33,31 +35,45 @@ let leadingString: string = ''
 
 export default class EnhanceYouTubeLinksPlugin extends Plugin {
     settings: EnhanceYouTubeLinksPluginSettings;
+    ribbonIconEl!: HTMLElement | null;
 
     async onload() {
         await this.loadSettings();
 
-        const editor = this.app.workspace.activeEditor?.editor;
-        if (editor) {
-            if (this.settings.enableRibbonIcon) {
-                this.addRibbonIcon('youtube', 'Get YouTube data', (evt: MouseEvent) => {
-                    this.processText(editor)
-                })
-            }
-    
-            if (this.settings.enableCommandPalette) {
-                this.addCommand({
-                    id: 'enhance-youtube-links-process-text',
-                    name: 'Process Text',
-                    editorCallback: (editor: Editor, view: MarkdownView) => {
-                        this.processText(editor)
-
-                    },
-                })
-            }
+        if (this.settings.enableRibbonIcon) {
+            this.ribbonIconHandler() // code in a function to remove it from settings
         }
 
+        if(this.settings.enableCommandPalette){
+            this.addCommandHandler()
+        }
+
+
+
         this.addSettingTab(new EnhanceYouTubeLinksSettingTab(this.app, this));
+    }
+
+    ribbonIconHandler(){
+        // we put  addRibbonIcon() in a variable to delete it from settings 
+        this.ribbonIconEl =this.addRibbonIcon('youtube', 'Get YouTube data' , (evt: MouseEvent) => {
+            const editor = this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
+            if(editor) this.processText(editor)
+        })
+    }
+
+    addCommandHandler(){
+        this.addCommand({
+            id: 'enhance-youtube-links-process-text',
+            name: 'Process Text',
+            // with editor|Check|Callback → editor: provides active editor, check: if not checking command in palette 
+            editorCheckCallback: (checking: boolean, editor: Editor, view: MarkdownView) => {
+                const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
+                if (!checking) // command is in palette
+                    this.processText(editor)
+                return !!markdownView && !!editor.somethingSelected() &&
+                 editor.getSelection().contains("youtu"); // the condition to check. 'youtu' to cover links like https://youtu.be/abcdefghij
+            },
+        })
     }
 
     getBullet(text: string): void {
@@ -217,104 +233,3 @@ export default class EnhanceYouTubeLinksPlugin extends Plugin {
     }
 }
 
-class EnhanceYouTubeLinksSettingTab extends PluginSettingTab {
-    plugin: EnhanceYouTubeLinksPlugin;
-
-    constructor(app: App, plugin: EnhanceYouTubeLinksPlugin) {
-        super(app, plugin);
-        this.plugin = plugin;
-    }
-
-    display(): void {
-
-        const { containerEl } = this;
-
-        containerEl.empty();
-
-        new Setting(containerEl)
-            .setName('Add extra metadata')
-            .setDesc('Channel name, channel URL, thumbnail')
-            .addToggle((cb) => {
-                cb.setValue(this.plugin.settings.includeExtraMetadata)
-                cb.onChange(async (value) => {
-                    this.plugin.settings.includeExtraMetadata = value;
-                    await this.plugin.saveSettings();
-                    this.display();
-
-                })
-            })
-
-        if (this.plugin.settings.includeExtraMetadata) {
-
-            new Setting(containerEl)
-
-                .setName('Channel name')
-                .addToggle((cb) => {
-                    cb.setValue(this.plugin.settings.includeChannelName)
-                    cb.onChange(async (value) => {
-                        this.plugin.settings.includeChannelName = value;
-                        await this.plugin.saveSettings();
-                        this.display();
-                    })
-
-
-                })
-
-            new Setting(containerEl)
-                .setName('Channel URL')
-                .addToggle((cb) => {
-                    cb.setValue(this.plugin.settings.includeChannelURL)
-                    cb.onChange(async (value) => {
-                        this.plugin.settings.includeChannelURL = value;
-                        await this.plugin.saveSettings();
-                        this.display();
-                    })
-                })
-
-            if (this.plugin.settings.includeChannelName && this.plugin.settings.includeChannelURL) {
-                new Setting(containerEl)
-                    .setName('Combine channel name and channel URL')
-                    .addToggle((cb) => {
-                        cb.setValue(this.plugin.settings.combineChannelNameAndURL)
-                        cb.onChange(async (value) => {
-                            this.plugin.settings.combineChannelNameAndURL = value;
-                            await this.plugin.saveSettings();
-                            this.display();
-                        })
-                    })
-            }
-
-            new Setting(containerEl)
-                .setName('Thumbnail')
-                .addToggle((cb) => {
-                    cb.setValue(this.plugin.settings.includeChannelThumbnail)
-                    cb.onChange(async (value) => {
-                        this.plugin.settings.includeChannelThumbnail = value;
-                        await this.plugin.saveSettings();
-                    })
-                })
-        }
-
-        new Setting(containerEl)
-            .setName('Enable ribbon icon')
-            .addToggle((cb) => {
-                cb.setValue(this.plugin.settings.enableRibbonIcon)
-                cb.onChange(async (value) => {
-                    this.plugin.settings.enableRibbonIcon = value;
-                    await this.plugin.saveSettings();
-                })
-            })
-            .setDesc('Requires reload for change to reflect')
-
-        new Setting(containerEl)
-            .setName('Enable command palette')
-            .addToggle((cb) => {
-                cb.setValue(this.plugin.settings.enableCommandPalette)
-                cb.onChange(async (value) => {
-                    this.plugin.settings.enableCommandPalette = value;
-                    await this.plugin.saveSettings();
-                })
-            })
-            .setDesc('Requires reload for change to reflect')
-    }
-}
