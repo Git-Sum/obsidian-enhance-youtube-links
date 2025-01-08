@@ -82,7 +82,7 @@ export default class EnhanceYouTubeLinksPlugin extends Plugin {
             indentLevel = this.getIndentLevel(lineSelected)
             this.getBullet(lineSelected)
 
-            if (textSelected?.startsWith('https://www.youtube.com') || textSelected?.startsWith('www.youtube.com') || textSelected?.startsWith('youtube.com')) {
+            if (textSelected?.startsWith('https://www.youtube.com') || textSelected?.startsWith('www.youtube.com') || textSelected?.startsWith('youtube.com') || textSelected?.startsWith('https://youtube.com') || textSelected?.startsWith('https://youtu.be') || textSelected?.startsWith('youtu.be')) {
                 const urlFinal = urlBase + textSelected;
                 const data = await this.getYouTubeData(urlFinal)
 
