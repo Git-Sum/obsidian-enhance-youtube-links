@@ -6,9 +6,9 @@ Take a YouTube link and get the title and optionally channel name, channel URL, 
 
 ## Supported URL Formats
 ```
-- https://www.youtube.com*
-- www.youtube.com*
 - youtube.com*
+- youtu.be*
+- m.youtube.com*
 ```
 ## Submit Feedback
 [Google Forms](https://forms.gle/RZmeT9Ju1mDQ6vK47)

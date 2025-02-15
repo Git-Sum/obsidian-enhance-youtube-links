@@ -77,14 +77,14 @@ export default class EnhanceYouTubeLinksPlugin extends Plugin {
         const textSelected = editor.getSelection();
 
         if (textSelected.length > 0) {
-            const textSelectedClean = textSelected.replace('https://', '').replace('www.', '')
+            const textSelectedClean = textSelected.replace('https://', '').replace('www.', '').replace('http://', '')
 
             const line = editor.getCursor().line
             const lineSelected = editor.getLine(line)
             indentLevel = this.getIndentLevel(lineSelected)
             this.getBullet(lineSelected)
 
-            if (textSelectedClean.startsWith('youtube.com') || textSelectedClean.startsWith('youtu.be')) {
+            if (textSelectedClean.startsWith('youtube.com') || textSelectedClean.startsWith('youtu.be') || textSelectedClean.startsWith('m.youtube.com')) {
                 const urlFinal = urlBase + textSelectedClean
                 const data = await this.getYouTubeData(urlFinal)
 
@@ -217,6 +217,7 @@ export default class EnhanceYouTubeLinksPlugin extends Plugin {
     async saveSettings() {
         await this.saveData(this.settings);
     }
+
 }
 
 class EnhanceYouTubeLinksSettingTab extends PluginSettingTab {
