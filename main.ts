@@ -77,17 +77,19 @@ export default class EnhanceYouTubeLinksPlugin extends Plugin {
         const textSelected = editor.getSelection();
 
         if (textSelected.length > 0) {
+            const textSelectedClean = textSelected.replace('https://', '').replace('www.', '')
+
             const line = editor.getCursor().line
             const lineSelected = editor.getLine(line)
             indentLevel = this.getIndentLevel(lineSelected)
             this.getBullet(lineSelected)
 
-            if (textSelected?.startsWith('https://www.youtube.com') || textSelected?.startsWith('www.youtube.com') || textSelected?.startsWith('youtube.com') || textSelected?.startsWith('https://youtube.com') || textSelected?.startsWith('https://youtu.be') || textSelected?.startsWith('youtu.be')) {
-                const urlFinal = urlBase + textSelected;
+            if (textSelectedClean.startsWith('youtube.com') || textSelectedClean.startsWith('youtu.be')) {
+                const urlFinal = urlBase + textSelectedClean
                 const data = await this.getYouTubeData(urlFinal)
 
                 if (data) {
-                    let urlTitle: string = this.buildTitle(data, textSelected)
+                    let urlTitle: string = this.buildTitle(data, textSelectedClean)
                     let result: string
 
                     result = lineSelected.replace(textSelected, urlTitle)
@@ -203,7 +205,7 @@ export default class EnhanceYouTubeLinksPlugin extends Plugin {
 
         title = data.title
 
-        titleURL = '[' + title.replace('[', '').replace(']', '') + '](' + url + ')'
+        titleURL = '[' + title.replace('[', '').replace(']', '') + '](' + 'https://' + url + ')'
 
         return titleURL
     }
