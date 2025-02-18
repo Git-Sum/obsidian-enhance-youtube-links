@@ -37,24 +37,27 @@ export default class EnhanceYouTubeLinksPlugin extends Plugin {
     async onload() {
         await this.loadSettings();
 
-        const editor = this.app.workspace.activeEditor?.editor;
-        if (editor) {
-            if (this.settings.enableRibbonIcon) {
-                this.addRibbonIcon('youtube', 'Get YouTube data', (evt: MouseEvent) => {
-                    this.processText(editor)
-                })
-            }
-    
-            if (this.settings.enableCommandPalette) {
-                this.addCommand({
-                    id: 'enhance-youtube-links-process-text',
-                    name: 'Process Text',
-                    editorCallback: (editor: Editor, view: MarkdownView) => {
-                        this.processText(editor)
+        if (this.settings.enableRibbonIcon) {
+            this.addRibbonIcon('youtube', 'Get YouTube data', (evt: MouseEvent) => {
+                const editor = this.app.workspace.activeEditor
 
-                    },
-                })
-            }
+                if (editor?.editor != null) {
+                    this.processText(editor.editor)
+                }
+                else {
+                    new Notice('No editor found')
+                }
+            })
+        }
+
+        if (this.settings.enableCommandPalette) {
+            this.addCommand({
+                id: 'enhance-youtube-links-process-text',
+                name: 'Process Text',
+                editorCallback: (editor: Editor, view: MarkdownView) => {
+                    this.processText(editor)
+                },
+            })
         }
 
         this.addSettingTab(new EnhanceYouTubeLinksSettingTab(this.app, this));
