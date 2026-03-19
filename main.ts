@@ -339,7 +339,7 @@ class EnhanceYouTubeLinksSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Embed YouTube video')
-            .setDesc('Add an embedded video players')
+            .setDesc('Add an embedded video player')
             .addToggle((cb) => {
                 cb.setValue(this.plugin.settings.embedYoutubeVideo)
                 cb.onChange(async (value) => {
