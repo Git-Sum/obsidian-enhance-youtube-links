@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, requestUrl } from 'obsidian';
+import { App, Editor, MarkdownView, Menu, Notice, Plugin, PluginSettingTab, Setting, requestUrl } from 'obsidian';
 
 /*
 ToDos:
@@ -12,6 +12,8 @@ interface EnhanceYouTubeLinksPluginSettings {
     includeChannelName: boolean;
     includeChannelURL: boolean;
     includeChannelThumbnail: boolean;
+    embedYoutubeVideo: boolean;
+    embedTemplate: string;
     combineChannelNameAndURL: boolean;
     enableRibbonIcon: boolean;
     enableCommandPalette: boolean;
@@ -22,6 +24,8 @@ const DEFAULT_SETTINGS: EnhanceYouTubeLinksPluginSettings = {
     includeChannelName: true,
     includeChannelURL: true,
     includeChannelThumbnail: true,
+    embedYoutubeVideo: false,
+    embedTemplate: "![youtube video](%s)",
     combineChannelNameAndURL: false,
     enableRibbonIcon: true,
     enableCommandPalette: true
@@ -60,6 +64,28 @@ export default class EnhanceYouTubeLinksPlugin extends Plugin {
             })
         }
 
+        this.registerEvent(
+            this.app.workspace.on("editor-menu", (menu: Menu, editor: Editor, view: MarkdownView) => {
+                let selection = editor.getSelection();
+                const lineText = editor.getLine(editor.getCursor().line);
+
+                if (!selection && lineText.length > 0) {
+                    selection = lineText.trim();
+                }
+
+                if (selection && (selection.includes('youtube.com') || selection.includes('youtu.be'))) {
+                    menu.addItem((item) => {
+                        item
+                            .setTitle("Enhance YouTube Link")
+                            .setIcon("youtube")
+                            .onClick(async () => {
+                                this.processText(editor);
+                            });
+                    });
+                }
+            })
+        );
+
         this.addSettingTab(new EnhanceYouTubeLinksSettingTab(this.app, this));
     }
 
@@ -77,13 +103,17 @@ export default class EnhanceYouTubeLinksPlugin extends Plugin {
 
         const urlBase = 'https://www.youtube.com/oembed?url='
 
-        const textSelected = editor.getSelection();
+        let textSelected = editor.getSelection();
+        const line = editor.getCursor().line
+        const lineSelected = editor.getLine(line)
+
+        if (!textSelected && lineSelected.length > 0) {
+            textSelected = lineSelected.trim();
+        }
 
         if (textSelected.length > 0) {
             const textSelectedClean = textSelected.replace('https://', '').replace('www.', '').replace('http://', '')
 
-            const line = editor.getCursor().line
-            const lineSelected = editor.getLine(line)
             indentLevel = this.getIndentLevel(lineSelected)
             this.getBullet(lineSelected)
 
@@ -102,9 +132,15 @@ export default class EnhanceYouTubeLinksPlugin extends Plugin {
 
                     }
 
+                    if (this.settings.embedYoutubeVideo) {
+                        const embedCode = this.settings.embedTemplate.replace('%s', 'https://' + textSelectedClean);
+                        result += '\n' + this.getIndent() + leadingString + embedCode
+                        lineCount += 1
+                    }
+
                     editor.setLine(line, result)
 
-                    if (this.settings.includeExtraMetadata) {
+                    if (this.settings.includeExtraMetadata || this.settings.embedYoutubeVideo) {
                         editor.setCursor(line + lineCount, 0)
 
                     }
@@ -300,6 +336,30 @@ class EnhanceYouTubeLinksSettingTab extends PluginSettingTab {
                     })
                 })
         }
+
+        new Setting(containerEl)
+            .setName('Embed YouTube video')
+            .setDesc('Add an embedded video player')
+            .addToggle((cb) => {
+                cb.setValue(this.plugin.settings.embedYoutubeVideo)
+                cb.onChange(async (value) => {
+                    this.plugin.settings.embedYoutubeVideo = value;
+                    await this.plugin.saveSettings();
+                })
+            })
+
+        new Setting(containerEl)
+            .setName('Embed template')
+            .setDesc('Format for embedded video. Use %s as placeholder for video url')
+            .addText((text) =>
+                text
+                    .setPlaceholder('![youtube video](%s)')
+                    .setValue(this.plugin.settings.embedTemplate)
+                    .onChange(async (value) => {
+                        this.plugin.settings.embedTemplate = value;
+                        await this.plugin.saveSettings();
+                    })
+            );
 
         new Setting(containerEl)
             .setName('Enable ribbon icon')
